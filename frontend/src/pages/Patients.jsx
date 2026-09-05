@@ -23,8 +23,9 @@ import EmptyState from '../components/EmptyState'
 export default function Patients() {
 
   // ─────────────────────────────────────────────
-  // Patient list states
+  // PATIENT LIST
   // ─────────────────────────────────────────────
+
   const [patients, setPatients] = useState([])
   const [total, setTotal] = useState(0)
 
@@ -42,9 +43,11 @@ export default function Patients() {
 
   const PER_PAGE = 20
 
+
   // ─────────────────────────────────────────────
-  // Add Patient modal
+  // ADD PATIENT MODAL
   // ─────────────────────────────────────────────
+
   const [showAddModal, setShowAddModal] = useState(false)
   const [addLoading, setAddLoading] = useState(false)
   const [addError, setAddError] = useState('')
@@ -56,12 +59,15 @@ export default function Patients() {
     ward: '',
     bed_id: '',
     doctor: '',
-    status: 'admitted'
+    status: 'admitted',
+    risk_level: 'LOW'
   })
 
+
   // ─────────────────────────────────────────────
-  // Load patients
+  // LOAD PATIENTS
   // ─────────────────────────────────────────────
+
   const load = useCallback(async () => {
 
     setLoading(true)
@@ -82,8 +88,12 @@ export default function Patients() {
         params.risk_level = filters.risk_level
       }
 
-      if (filters.ward) {
-        params.ward = filters.ward
+      if (filters.ward.trim()) {
+        params.ward = filters.ward.trim()
+      }
+
+      if (filters.search.trim()) {
+        params.search = filters.search.trim()
       }
 
       const res = await getPatients(params)
@@ -108,33 +118,37 @@ export default function Patients() {
     page,
     filters.status,
     filters.risk_level,
-    filters.ward
+    filters.ward,
+    filters.search
   ])
+
 
   useEffect(() => {
     load()
   }, [load])
 
-  // ─────────────────────────────────────────────
-  // Search filtering
-  // ─────────────────────────────────────────────
-  const filtered = patients.filter(p => {
-
-    const search = filters.search.toLowerCase()
-
-    if (!search) return true
-
-    return (
-      p.patient_id?.toLowerCase().includes(search) ||
-      p.ward?.toLowerCase().includes(search) ||
-      p.doctor?.toLowerCase().includes(search)
-    )
-
-  })
 
   // ─────────────────────────────────────────────
-  // Form change
+  // SEARCH CHANGE
   // ─────────────────────────────────────────────
+
+  function handleSearchChange(e) {
+
+    const value = e.target.value
+
+    setFilters(prev => ({
+      ...prev,
+      search: value
+    }))
+
+    setPage(1)
+  }
+
+
+  // ─────────────────────────────────────────────
+  // FORM CHANGE
+  // ─────────────────────────────────────────────
+
   function handleFormChange(e) {
 
     const { name, value } = e.target
@@ -146,9 +160,11 @@ export default function Patients() {
 
   }
 
+
   // ─────────────────────────────────────────────
-  // Open Add Patient
+  // OPEN ADD MODAL
   // ─────────────────────────────────────────────
+
   function openAddModal() {
 
     setForm({
@@ -158,7 +174,8 @@ export default function Patients() {
       ward: '',
       bed_id: '',
       doctor: '',
-      status: 'admitted'
+      status: 'admitted',
+      risk_level: 'LOW'
     })
 
     setAddError('')
@@ -166,9 +183,11 @@ export default function Patients() {
 
   }
 
+
   // ─────────────────────────────────────────────
-  // Close Add Patient
+  // CLOSE MODAL
   // ─────────────────────────────────────────────
+
   function closeAddModal() {
 
     if (addLoading) return
@@ -178,16 +197,20 @@ export default function Patients() {
 
   }
 
+
   // ─────────────────────────────────────────────
-  // Add Patient
+  // ADD PATIENT
   // ─────────────────────────────────────────────
+
   async function handleAddPatient(e) {
 
     e.preventDefault()
 
     setAddError('')
 
-    // Basic validation
+
+    // Validation
+
     if (!form.patient_id.trim()) {
       setAddError('Patient ID is required.')
       return
@@ -208,27 +231,66 @@ export default function Patients() {
       return
     }
 
+    if (!form.doctor.trim()) {
+      setAddError('Doctor name is required.')
+      return
+    }
+
+    if (!form.risk_level) {
+      setAddError('Risk level is required.')
+      return
+    }
+
+
     setAddLoading(true)
+
 
     try {
 
       const patientData = {
+
         patient_id: form.patient_id.trim(),
+
         age: Number(form.age),
+
         gender: form.gender,
+
         ward: form.ward.trim(),
+
         bed_id: form.bed_id.trim(),
+
         doctor: form.doctor.trim(),
-        status: form.status
+
+        status: form.status,
+
+        // IMPORTANT
+        risk_level: form.risk_level
+
       }
+
 
       await createPatient(patientData)
 
+
       alert('Patient added successfully!')
+
 
       setShowAddModal(false)
 
-      // Refresh patient list
+
+      // Go to first page
+      setPage(1)
+
+
+      // Clear search/filter so new patient can be seen
+      setFilters({
+        status: '',
+        risk_level: '',
+        ward: '',
+        search: ''
+      })
+
+
       await load()
 
     } catch (err) {
@@ -246,13 +308,16 @@ export default function Patients() {
 
   }
 
+
   return (
 
     <div className="space-y-4">
 
-      {/* ─────────────────────────────────────────
-          Header
-      ───────────────────────────────────────── */}
+
+      {/* ═══════════════════════════════════════════
+          HEADER
+      ═══════════════════════════════════════════ */}
+
       <div className="flex items-center justify-between">
 
         <div>
@@ -267,27 +332,33 @@ export default function Patients() {
 
         </div>
 
-        {/* ADD PATIENT BUTTON */}
+
         <button
           onClick={openAddModal}
           className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition"
         >
+
           <Plus size={17} />
+
           Add Patient
+
         </button>
 
       </div>
 
 
-      {/* ─────────────────────────────────────────
-          Filters
-      ───────────────────────────────────────── */}
+      {/* ═══════════════════════════════════════════
+          FILTERS
+      ═══════════════════════════════════════════ */}
+
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
 
         <div className="flex flex-wrap gap-3">
 
-          {/* Search */}
-          <div className="relative flex-1 min-w-40">
+
+          {/* SEARCH */}
+
+          <div className="relative flex-1 min-w-48">
 
             <Search
               size={15}
@@ -296,33 +367,29 @@ export default function Patients() {
 
             <input
               value={filters.search}
-              onChange={e =>
-                setFilters(p => ({
-                  ...p,
-                  search: e.target.value
-                }))
-              }
-              placeholder="Search patient ID, ward, doctor…"
+              onChange={handleSearchChange}
+              placeholder="Search patient ID, ward, doctor..."
               className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30"
             />
 
           </div>
 
 
-          {/* Status */}
+          {/* STATUS */}
+
           <select
             value={filters.status}
             onChange={e => {
 
-              setFilters(p => ({
-                ...p,
+              setFilters(prev => ({
+                ...prev,
                 status: e.target.value
               }))
 
               setPage(1)
 
             }}
-            className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            className="text-sm border border-slate-200 rounded-lg px-3 py-2"
           >
 
             <option value="">
@@ -344,20 +411,21 @@ export default function Patients() {
           </select>
 
 
-          {/* Risk */}
+          {/* RISK */}
+
           <select
             value={filters.risk_level}
             onChange={e => {
 
-              setFilters(p => ({
-                ...p,
+              setFilters(prev => ({
+                ...prev,
                 risk_level: e.target.value
               }))
 
               setPage(1)
 
             }}
-            className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            className="text-sm border border-slate-200 rounded-lg px-3 py-2"
           >
 
             <option value="">
@@ -383,9 +451,10 @@ export default function Patients() {
       </div>
 
 
-      {/* ─────────────────────────────────────────
-          Patient Table
-      ───────────────────────────────────────── */}
+      {/* ═══════════════════════════════════════════
+          TABLE
+      ═══════════════════════════════════════════ */}
+
       {loading ? (
 
         <LoadingSpinner />
@@ -436,7 +505,7 @@ export default function Patients() {
 
               <tbody className="divide-y divide-slate-100">
 
-                {filtered.length === 0 ? (
+                {patients.length === 0 ? (
 
                   <tr>
 
@@ -447,7 +516,7 @@ export default function Patients() {
 
                       <EmptyState
                         title="No patients found"
-                        message="Try adjusting your filters."
+                        message="Try another patient ID, doctor name, ward, or risk level."
                         icon={User}
                       />
 
@@ -457,20 +526,22 @@ export default function Patients() {
 
                 ) : (
 
-                  filtered.map(p => (
+                  patients.map(p => (
 
                     <tr
                       key={p.patient_id || p._id}
                       className="hover:bg-slate-50 transition-colors"
                     >
 
-                      {/* Patient ID */}
+                      {/* PATIENT ID */}
+
                       <td className="px-4 py-3 font-mono text-xs font-semibold text-blue-600">
                         {p.patient_id}
                       </td>
 
 
-                      {/* Age / Gender */}
+                      {/* AGE / GENDER */}
+
                       <td className="px-4 py-3 text-slate-600">
 
                         {p.age
@@ -485,7 +556,8 @@ export default function Patients() {
                       </td>
 
 
-                      {/* Ward / Bed */}
+                      {/* WARD / BED */}
+
                       <td className="px-4 py-3">
 
                         <span className="text-slate-700">
@@ -503,13 +575,15 @@ export default function Patients() {
                       </td>
 
 
-                      {/* Status */}
+                      {/* STATUS */}
+
                       <td className="px-4 py-3">
                         <StatusBadge status={p.status} />
                       </td>
 
 
-                      {/* Risk */}
+                      {/* RISK */}
+
                       <td className="px-4 py-3">
 
                         <RiskBadge
@@ -520,7 +594,8 @@ export default function Patients() {
                       </td>
 
 
-                      {/* Discharge */}
+                      {/* DISCHARGE */}
+
                       <td className="px-4 py-3">
 
                         {p.is_discharge_blocked ? (
@@ -544,15 +619,15 @@ export default function Patients() {
                       </td>
 
 
-                      {/* Doctor */}
+                      {/* DOCTOR */}
+
                       <td className="px-4 py-3 text-slate-500 text-xs">
-
                         {p.doctor || '—'}
-
                       </td>
 
 
-                      {/* View */}
+                      {/* VIEW */}
+
                       <td className="px-4 py-3">
 
                         <Link
@@ -581,9 +656,8 @@ export default function Patients() {
           </div>
 
 
-          {/* ─────────────────────────────────────
-              Pagination
-          ───────────────────────────────────── */}
+          {/* PAGINATION */}
+
           {total > PER_PAGE && (
 
             <div className="border-t border-slate-100 px-4 py-3 flex items-center justify-between">
@@ -609,20 +683,15 @@ export default function Patients() {
 
                 <button
                   disabled={page === 1}
-                  onClick={() =>
-                    setPage(p => p - 1)
-                  }
+                  onClick={() => setPage(p => p - 1)}
                   className="text-xs px-3 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50"
                 >
                   Prev
                 </button>
 
-
                 <button
                   disabled={page * PER_PAGE >= total}
-                  onClick={() =>
-                    setPage(p => p + 1)
-                  }
+                  onClick={() => setPage(p => p + 1)}
                   className="text-xs px-3 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50"
                 >
                   Next
@@ -642,13 +711,16 @@ export default function Patients() {
       {/* ═══════════════════════════════════════════
           ADD PATIENT MODAL
       ═══════════════════════════════════════════ */}
+
       {showAddModal && (
 
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
 
           <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden">
 
-            {/* Modal Header */}
+
+            {/* MODAL HEADER */}
+
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
 
               <div>
@@ -676,13 +748,16 @@ export default function Patients() {
             </div>
 
 
-            {/* Form */}
+            {/* FORM */}
+
             <form
               onSubmit={handleAddPatient}
               className="p-6 space-y-4"
             >
 
-              {/* Error */}
+
+              {/* ERROR */}
+
               {addError && (
 
                 <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
@@ -692,7 +767,8 @@ export default function Patients() {
               )}
 
 
-              {/* Patient ID */}
+              {/* PATIENT ID */}
+
               <div>
 
                 <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -710,7 +786,8 @@ export default function Patients() {
               </div>
 
 
-              {/* Age + Gender */}
+              {/* AGE + GENDER */}
+
               <div className="grid grid-cols-2 gap-4">
 
                 <div>
@@ -727,7 +804,7 @@ export default function Patients() {
                     min="0"
                     max="120"
                     placeholder="45"
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm"
                   />
 
                 </div>
@@ -743,7 +820,7 @@ export default function Patients() {
                     name="gender"
                     value={form.gender}
                     onChange={handleFormChange}
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm"
                   >
 
                     <option value="">
@@ -769,7 +846,8 @@ export default function Patients() {
               </div>
 
 
-              {/* Ward + Bed */}
+              {/* WARD + BED */}
+
               <div className="grid grid-cols-2 gap-4">
 
                 <div>
@@ -783,7 +861,7 @@ export default function Patients() {
                     value={form.ward}
                     onChange={handleFormChange}
                     placeholder="Example: ICU"
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm"
                   />
 
                 </div>
@@ -800,7 +878,7 @@ export default function Patients() {
                     value={form.bed_id}
                     onChange={handleFormChange}
                     placeholder="Example: B-12"
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm"
                   />
 
                 </div>
@@ -808,11 +886,12 @@ export default function Patients() {
               </div>
 
 
-              {/* Doctor */}
+              {/* DOCTOR */}
+
               <div>
 
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Doctor
+                  Doctor *
                 </label>
 
                 <input
@@ -820,13 +899,50 @@ export default function Patients() {
                   value={form.doctor}
                   onChange={handleFormChange}
                   placeholder="Example: Dr. Kumar"
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm"
                 />
 
               </div>
 
 
-              {/* Status */}
+              {/* RISK LEVEL */}
+
+              <div>
+
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Risk Level *
+                </label>
+
+                <select
+                  name="risk_level"
+                  value={form.risk_level}
+                  onChange={handleFormChange}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                >
+
+                  <option value="LOW">
+                    Low Risk
+                  </option>
+
+                  <option value="MEDIUM">
+                    Medium Risk
+                  </option>
+
+                  <option value="HIGH">
+                    High Risk
+                  </option>
+
+                </select>
+
+                <p className="text-xs text-slate-400 mt-1">
+                  Select the current diagnostic risk level of the patient.
+                </p>
+
+              </div>
+
+
+              {/* STATUS */}
+
               <div>
 
                 <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -837,7 +953,7 @@ export default function Patients() {
                   name="status"
                   value={form.status}
                   onChange={handleFormChange}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm"
                 >
 
                   <option value="admitted">
@@ -857,7 +973,8 @@ export default function Patients() {
               </div>
 
 
-              {/* Buttons */}
+              {/* BUTTONS */}
+
               <div className="flex gap-3 pt-2">
 
                 <button
@@ -894,6 +1011,5 @@ export default function Patients() {
       )}
 
     </div>
-
   )
 }
