@@ -2,6 +2,7 @@ services:
   - type: web
     name: hospital-dashboard-api
     runtime: python
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn wsgi:app --config gunicorn.conf.py
     envVars:
