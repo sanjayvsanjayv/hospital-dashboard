@@ -16,4 +16,8 @@ export default defineConfig({
       },
     },
   },
+
+  preview: {
+    allowedHosts: ['hospital-dashboard-21dx.onrender.com'],
+  },
 })
